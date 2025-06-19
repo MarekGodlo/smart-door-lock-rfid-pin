@@ -12,13 +12,7 @@ char keypad[ROWS][COLLUMS]{
     {'7', '8', '9', 'C'},
     {'*', '0', '#', 'D'}};
 
-// char euqualCharWithKeypad(char c)
-// {
-// }
-
-// void readKeypad(char userChoice)
-// {
-// }
+char readKeypad();
 
 void setup()
 {
@@ -39,14 +33,25 @@ void setup()
 
 void loop()
 {
+    char c = readKeypad();
+
+    Serial.println(c);
+
+    if (c != '\0') {
+        delay(1000);
+    }
+}
+
+char readKeypad()
+{
     for (int r = 0; r < ROWS; r++)
-    {   
+    {
         pinMode(rowPins[r], OUTPUT);
         digitalWrite(rowPins[r], LOW);
 
         Serial.println("checking " + String(r));
 
-        delayMicroseconds(20);
+        delayMicroseconds(100);
 
         for (int c = 0; c < COLLUMS; c++)
         {
@@ -55,12 +60,17 @@ void loop()
             if (collumSignal == LOW)
             {
                 Serial.println("find sygnal in collum");
-                Serial.println("(" + String(r) + " , " + String(c) + ")");
-                while (digitalRead(collumPins[c]) == LOW); // czekaj aż puścisz przycisk
-                delay(100);
-                break;
+                // Serial.println("(" + String(r) + " , " + String(c) + ")");
+                delay(50);
+
+                Serial.println("(" + String(r) + ", " + String(c) + ")");
+
+                while (digitalRead(collumPins[c]) == LOW);
+                pinMode(rowPins[r], INPUT);
+                return keypad[r][c];
             }
         }
-        pinMode(rowPins[r], INPUT);
     }
+
+    return '\0';
 }
