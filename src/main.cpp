@@ -1,4 +1,5 @@
 #include <arduino.h>
+#include <LiquidCrystal_I2C.h>
 
 const byte ROWS = 4;
 const byte COLLUMS = 4;
@@ -13,6 +14,10 @@ char keypad[ROWS][COLLUMS]{
     {'*', '0', '#', 'D'}};
 
 char readKeypad();
+
+LiquidCrystal_I2C lcd(0x23, 16, 2);
+
+bool validChar(char c);
 
 void setup()
 {
@@ -29,11 +34,23 @@ void setup()
     {
         pinMode(collumPins[c], INPUT_PULLUP);
     }
+
+    lcd.init();
+    lcd.backlight();
+    lcd.clear();
+    lcd.print("Hello, world!");
 }
 
 void loop()
 {
-    readKeypad();
+    char c = readKeypad();
+
+    if (validChar(c))
+    {
+        Serial.println("displaying character");
+        lcd.setCursor(0, 0);
+        lcd.print(c);
+    }
 }
 
 char readKeypad()
@@ -45,7 +62,7 @@ char readKeypad()
         pinMode(rowPins[r], OUTPUT);
         digitalWrite(rowPins[r], LOW);
 
-        Serial.println("checking " + String(r));
+        // Serial.println("checking " + String(r));
 
         delayMicroseconds(20);
 
@@ -62,7 +79,8 @@ char readKeypad()
 
                 Serial.println(userChoice);
 
-                while (digitalRead(collumPins[c]) == LOW);
+                while (digitalRead(collumPins[c]) == LOW)
+                    ;
                 delay(100);
                 break;
             }
@@ -71,4 +89,15 @@ char readKeypad()
     }
 
     return userChoice;
+}
+
+bool validChar(char c)
+{
+    if (c !=  '\0')
+    {
+        Serial.println("validing char");
+        return true;
+    }
+
+    return false;
 }
