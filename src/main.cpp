@@ -33,17 +33,13 @@ void setup()
 
 void loop()
 {
-    char c = readKeypad();
-
-    Serial.println(c);
-
-    if (c != '\0') {
-        delay(1000);
-    }
+    readKeypad();
 }
 
 char readKeypad()
 {
+    char userChoice = '\0';
+
     for (int r = 0; r < ROWS; r++)
     {
         pinMode(rowPins[r], OUTPUT);
@@ -51,7 +47,7 @@ char readKeypad()
 
         Serial.println("checking " + String(r));
 
-        delayMicroseconds(100);
+        delayMicroseconds(20);
 
         for (int c = 0; c < COLLUMS; c++)
         {
@@ -60,17 +56,19 @@ char readKeypad()
             if (collumSignal == LOW)
             {
                 Serial.println("find sygnal in collum");
-                // Serial.println("(" + String(r) + " , " + String(c) + ")");
-                delay(50);
+                Serial.println("(" + String(r) + " , " + String(c) + ")");
 
-                Serial.println("(" + String(r) + ", " + String(c) + ")");
+                userChoice = keypad[r][c];
+
+                Serial.println(userChoice);
 
                 while (digitalRead(collumPins[c]) == LOW);
-                pinMode(rowPins[r], INPUT);
-                return keypad[r][c];
+                delay(100);
+                break;
             }
         }
+        pinMode(rowPins[r], INPUT);
     }
 
-    return '\0';
+    return userChoice;
 }
