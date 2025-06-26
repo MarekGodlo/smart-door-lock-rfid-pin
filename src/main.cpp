@@ -4,8 +4,8 @@
 const byte ROWS = 4;
 const byte COLLUMS = 4;
 
-byte rowPins[ROWS] = {6, 7, 8, 9};
-byte collumPins[COLLUMS] = {2, 3, 4, 5};
+byte rowPins[ROWS] = {5, 4, 3, 2};
+byte collumPins[COLLUMS] = {6, 7, 8, 9};
 
 char keypad[ROWS][COLLUMS]{
     {'1', '2', '3', 'A'},
@@ -15,9 +15,25 @@ char keypad[ROWS][COLLUMS]{
 
 char readKeypad();
 
-LiquidCrystal_I2C lcd(0x23, 16, 2);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+byte lineChar[8] = {
+    B10000,
+    B10000,
+    B10000,
+    B10000,
+    B10000,
+    B10000,
+    B10000,
+    B10000};
+
+byte cursorPos[2] = {0, 1};
 
 bool validChar(char c);
+
+void lineCharImpulse();
+
+void writeCharOnLCD(char c);
 
 void setup()
 {
@@ -37,19 +53,58 @@ void setup()
 
     lcd.init();
     lcd.backlight();
+
+    lcd.createChar(0, lineChar);
+
     lcd.clear();
-    lcd.print("Hello, world!");
+    lcd.print("Enter PIN: ");
+
+    lcd.setCursor(cursorPos[0], cursorPos[1]);
 }
+
+unsigned long lastMillis;
+unsigned long lastMillisWrite;
+
+bool shouldShow = true;
 
 void loop()
 {
     char c = readKeypad();
 
+    if ((millis() - lastMillis) >= 500)
+    {
+        lineCharImpulse();
+    }
+
     if (validChar(c))
     {
         Serial.println("displaying character");
-        lcd.setCursor(0, 0);
-        lcd.print(c);
+        Serial.println(String(cursorPos[0]) + " " + String(cursorPos[1]));
+
+        lastMillisWrite = millis();
+        writeCharOnLCD(c);
+    }
+}
+
+void lineCharImpulse()
+{
+    if (shouldShow)
+    {
+        Serial.println("waiting to impulse...");
+        shouldShow = false;
+        lastMillis = millis();
+        lcd.setCursor(cursorPos[0], cursorPos[1]);
+        lcd.write(0);
+        Serial.println("impulse done");
+    }
+    else
+    {
+        Serial.println("waiting to impulse...");
+        shouldShow = true;
+        lastMillis = millis();
+        lcd.setCursor(cursorPos[0], cursorPos[1]);
+        lcd.print(" ");
+        Serial.println("impulse done");
     }
 }
 
@@ -93,11 +148,21 @@ char readKeypad()
 
 bool validChar(char c)
 {
-    if (c !=  '\0')
+    if (c != '\0')
     {
         Serial.println("validing char");
         return true;
     }
 
     return false;
+}
+
+void writeCharOnLCD(char c)
+{
+    Serial.println("writing char...");
+    lcd.setCursor(cursorPos[0], cursorPos[1]);
+    lcd.print(c);
+    delay(10);
+    cursorPos[0] += 1;
+    Serial.println("wrote char");
 }
