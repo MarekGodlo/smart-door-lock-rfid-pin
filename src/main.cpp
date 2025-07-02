@@ -35,14 +35,14 @@ void lineCharImpulse();
 
 void writeCharOnLCD(char c);
 
+void displayLineChar();
+
 void setup()
 {
     Serial.begin(9600);
 
     for (int r = 0; r < ROWS; r++)
     {
-        // pinMode(rowPins[r], OUTPUT);
-        // digitalWrite(rowPins[r], LOW);
         pinMode(rowPins[r], INPUT);
     }
 
@@ -65,7 +65,10 @@ void setup()
 unsigned long lastMillis;
 unsigned long lastMillisWrite;
 
-bool shouldShow = true;
+bool shouldShowLine = true;
+
+int currentCharsNumber = 0;
+int maxCharsNumber = 4;
 
 void loop()
 {
@@ -76,35 +79,42 @@ void loop()
         lineCharImpulse();
     }
 
-    if (validChar(c))
+    if (currentCharsNumber < maxCharsNumber)
     {
-        Serial.println("displaying character");
-        Serial.println(String(cursorPos[0]) + " " + String(cursorPos[1]));
-
-        lastMillisWrite = millis();
-        writeCharOnLCD(c);
+        if (validChar(c))
+        {
+            currentCharsNumber++;
+            Serial.print("currentCharsNumber inscreased");
+            Serial.println("displaying character");
+            Serial.println(String(cursorPos[0]) + " " + String(cursorPos[1]));
+            lastMillisWrite = millis();
+            writeCharOnLCD(c);
+        }
     }
 }
 
 void lineCharImpulse()
 {
-    if (shouldShow)
+    // Serial.println("waiting to impulse...");
+    lastMillis = millis();
+    lcd.setCursor(cursorPos[0], cursorPos[1]);
+    displayLineChar();
+    // Serial.println("impulse done");
+}
+
+void displayLineChar()
+{
+    if (shouldShowLine)
     {
-        Serial.println("waiting to impulse...");
-        shouldShow = false;
-        lastMillis = millis();
-        lcd.setCursor(cursorPos[0], cursorPos[1]);
+        shouldShowLine = false;
         lcd.write(0);
-        Serial.println("impulse done");
+        delayMicroseconds(20);
     }
     else
     {
-        Serial.println("waiting to impulse...");
-        shouldShow = true;
-        lastMillis = millis();
-        lcd.setCursor(cursorPos[0], cursorPos[1]);
+        shouldShowLine = true;
         lcd.print(" ");
-        Serial.println("impulse done");
+        delayMicroseconds(20);
     }
 }
 
