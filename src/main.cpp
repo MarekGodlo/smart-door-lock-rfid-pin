@@ -200,21 +200,26 @@ void handleCursorModeButton() {
 }
 
 void handleForwardButton() {
-    if (cursorPos[0] != 0) {
+    if (isEditionMode) {
+        if (cursorPos[0] != 0) {
+
+        }
         lcd.setCursor(cursorPos[0], cursorPos[1]);
         lcd.print(pin[cursorPos[0]]);
+        cursorPos[0]++;
+        currentCharsNumber++;
     }
-    cursorPos[0]++;
-    currentCharsNumber++;
     // lcd.setCursor(cursorPos[0], cursorPos[1]);
 }
 
 void handleBackwardButton() {
-    if (cursorPos[0] != 0) {
-        lcd.setCursor(cursorPos[0], cursorPos[1]);
-        lcd.print(pin[cursorPos[0]]);
-        cursorPos[0]--;
-        currentCharsNumber--;
+    if (isEditionMode) {
+        if (cursorPos[0] != 0) {
+            lcd.setCursor(cursorPos[0], cursorPos[1]);
+            lcd.print(pin[cursorPos[0]]);
+            cursorPos[0]--;
+            currentCharsNumber--;
+        }
     }
     // lcd.setCursor(cursorPos[0], cursorPos[1]);
 }
