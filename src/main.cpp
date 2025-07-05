@@ -132,11 +132,12 @@ char readKeypad() {
 
                 Serial.print("Found user choice: ");
                 Serial.println(userChoice);
+
+                while (digitalRead(collumPins[c]) == LOW);
+                delay(100);
+                break;
             }
         }
-
-        delay(200);
-
         pinMode(rowPins[r], INPUT);
     }
 
