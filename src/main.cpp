@@ -154,8 +154,8 @@ bool checkPin(int pin, int correctPin) {
 // ===============================================================================================================
 
 void selectRow(byte row) {
-    outputState &= 0b11100001;
-    outputState |= (1 << (row + 1));
+    outputState |= 0b00011110;
+    outputState &= ~(1 << (row + 1));
 
     updateShiftRegister(outputState);
 }
@@ -192,8 +192,6 @@ char readKeypad() {
                 break;
             }
         }
-
-        outputState &= 0b11100001;
     }
 
     return userChoice;
