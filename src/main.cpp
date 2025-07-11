@@ -9,12 +9,17 @@
 #define DEBUG(x)
 #endif
 
+const int clockPin = 13;
+const int latchPin = 12;
+const int dataPin = 11;
+
 // keypad
 const byte ROWS = 4;
 const byte COLUMNS = 4;
 
-byte rowPins[ROWS] = {5, 4, 3, 2};
-byte collumPins[COLUMNS] = {6, 7, 8, 9};
+// byte rowPins[ROWS] = {5, 4, 3, 2};
+
+byte collumPins[COLUMNS] = {2, 3, 4, 5};
 
 char keypad[ROWS][COLUMNS]{
     {'1', '2', '3', 'A'},
@@ -47,6 +52,8 @@ int maxCharsNumber = 4;
 
 String pin;
 
+void updateShiftRegister(byte value);
+
 bool checkPin(int pin, int correctPin);
 
 char readKeypad();
@@ -55,15 +62,24 @@ void charImpulseOnDisplay(int charIndex, char c);
 
 void displayCharOnLCD(char c);
 
+byte outputState = 0;
+
 void setup() {
     Serial.begin(9600);
 
     DEBUG("Serial monitor configured");
 
+    // sets shift register
+    pinMode(clockPin, OUTPUT);
+    pinMode(latchPin, OUTPUT);
+    pinMode(dataPin, OUTPUT);
+
+    DEBUG("Shift register congigured");
+
     // sets keypad
-    for (int r = 0; r < ROWS; r++) {
-        pinMode(rowPins[r], INPUT);
-    }
+    // for (int r = 0; r < ROWS; r++) {
+    //     pinMode(rowPins[r], INPUT);
+    // }
 
     for (int c = 0; c < COLUMNS; c++) {
         pinMode(collumPins[c], INPUT_PULLUP);
@@ -119,6 +135,12 @@ void loop() {
     displayCharOnLCD(c);
 }
 
+void updateShiftRegister(byte value) {
+    digitalWrite(latchPin, LOW);
+    shiftOut(dataPin, clockPin, MSBFIRST, value);
+    digitalWrite(latchPin, HIGH);
+}
+
 bool checkPin(int pin, int correctPin) {
     if (pin == correctPin) {
         DEBUG("Entered correct pin");
@@ -131,14 +153,22 @@ bool checkPin(int pin, int correctPin) {
 // Keypad
 // ===============================================================================================================
 
+void selectRow(byte row) {
+    outputState &= 0b11100001;
+    outputState |= (1 << (row + 1));
+
+    updateShiftRegister(outputState);
+}
+
 // reads the value from keypad
 char readKeypad() {
     char userChoice = '\0';
 
     // checks all rows
     for (int r = 0; r < ROWS; r++) {
-        pinMode(rowPins[r], OUTPUT);
-        digitalWrite(rowPins[r], LOW);
+        // pinMode(rowPins[r], OUTPUT);
+        // digitalWrite(rowPins[r], LOW);
+        selectRow(r);
 
         // DEBUG("checking " + String(r));
 
@@ -162,7 +192,8 @@ char readKeypad() {
                 break;
             }
         }
-        pinMode(rowPins[r], INPUT);
+
+        outputState &= 0b11100001;
     }
 
     return userChoice;
