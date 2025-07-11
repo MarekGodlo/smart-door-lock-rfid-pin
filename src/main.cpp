@@ -1,5 +1,13 @@
+#include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
-#include <arduino.h>
+
+#define DEBUG_MODE  // switch to debug mode
+
+#ifdef DEBUG_MODE
+#define DEBUG(x) Serial.println(x)
+#else
+#define DEBUG(x)
+#endif
 
 // keypad
 const byte ROWS = 4;
@@ -39,6 +47,8 @@ int maxCharsNumber = 4;
 
 String pin;
 
+bool checkPin(int pin, int correctPin);
+
 char readKeypad();
 
 void charImpulseOnDisplay(int charIndex, char c);
@@ -48,7 +58,7 @@ void displayCharOnLCD(char c);
 void setup() {
     Serial.begin(9600);
 
-    Serial.println("Serial monitor configured");
+    DEBUG("Serial monitor configured");
 
     // sets keypad
     for (int r = 0; r < ROWS; r++) {
@@ -58,27 +68,32 @@ void setup() {
     for (int c = 0; c < COLUMNS; c++) {
         pinMode(collumPins[c], INPUT_PULLUP);
     }
-    Serial.println("Keypad configured");
+    DEBUG("Keypad configured");
 
     // sets lcd
     lcd.init();
     lcd.backlight();
 
-    Serial.println("LCD Initialized");
+    DEBUG("LCD Initialized");
 
     lcd.createChar(0, lineChar);
     lcd.createChar(1, squareChar);
 
-    Serial.println("Created custom signs");
+    DEBUG("Created custom signs");
+
+    lcd.clear();
+    lcd.print("Configuration...");
+
+    lcd.setCursor(cursorPos[0], cursorPos[1]);
+
+    delay(1000);
 
     lcd.clear();
     lcd.print("Enter PIN: ");
 
-    lcd.setCursor(cursorPos[0], cursorPos[1]);
-
-    Serial.println("LCD configured");
-    Serial.println("==============================================================================");
-    Serial.println(" ");
+    DEBUG("LCD configured");
+    DEBUG("==============================================================================");
+    DEBUG(" ");
 }
 
 void loop() {
@@ -97,10 +112,19 @@ void loop() {
     }
 
     if (currentCharsNumber >= maxCharsNumber) {
+        checkPin(pin.toInt(), 1234);
         return;
     }
 
     displayCharOnLCD(c);
+}
+
+bool checkPin(int pin, int correctPin) {
+    if (pin == correctPin) {
+        DEBUG("Entered correct pin");
+    } else {
+        DEBUG("Entered incorrect pin");
+    }
 }
 
 // ===============================================================================================================
@@ -116,7 +140,7 @@ char readKeypad() {
         pinMode(rowPins[r], OUTPUT);
         digitalWrite(rowPins[r], LOW);
 
-        // Serial.println("checking " + String(r));
+        // DEBUG("checking " + String(r));
 
         delayMicroseconds(20);
 
@@ -125,16 +149,16 @@ char readKeypad() {
             int columnsSignal = digitalRead(collumPins[c]);
 
             if (columnsSignal == LOW) {
-                Serial.println("find sygnal in collum");
-                Serial.println("(" + String(r) + " , " + String(c) + ")");
+                DEBUG("find sygnal in collum");
+                DEBUG("(" + String(r) + " , " + String(c) + ")");
 
                 userChoice = keypad[r][c];
 
                 Serial.print("Found user choice: ");
-                Serial.println(userChoice);
+                DEBUG(userChoice);
 
                 while (digitalRead(collumPins[c]) == LOW);
-                delay(100);
+                delay(10);
                 break;
             }
         }
@@ -151,7 +175,7 @@ char readKeypad() {
 void handleAcceptButton() {
     lcd.setCursor(0, 1);
     lcd.print("Accept");
-    Serial.println("finished");
+    DEBUG("finished");
 };
 
 // deletes last sign
@@ -161,7 +185,7 @@ void handleBackspaceButton() {
     lcd.print(" ");
     currentCharsNumber--;
     pin.remove(pin.length() - 1);
-    Serial.println("finished backspace");
+    DEBUG("finished backspace");
 }
 
 // deletes all signs in row
@@ -174,7 +198,7 @@ void handleClearButton() {
     currentCharsNumber = 0;
     pin = "";
 
-    Serial.println(" finished clear PIN");
+    DEBUG(" finished clear PIN");
 }
 
 // turns on or turns off edition mode
@@ -187,7 +211,7 @@ void handleCursorModeButton() {
         cursorPos[0] = pin.length();
         isEditionMode = false;
 
-        Serial.println("Finished turn off edition mode");
+        DEBUG("Finished turn off edition mode");
         // turn on
     } else {
         lcd.setCursor(cursorPos[0], cursorPos[1]);
@@ -196,7 +220,7 @@ void handleCursorModeButton() {
         lcd.print(" ");
         currentCharsNumber--;
 
-        Serial.println("Finished turn on edition mode");
+        DEBUG("Finished turn on edition mode");
     }
 }
 
@@ -212,9 +236,9 @@ void handleForwardButton() {
         cursorPos[0]++;
         currentCharsNumber++;
 
-        Serial.println("Cursor has moved rigth");
+        DEBUG("Cursor has moved rigth");
     }
-    Serial.println("Finished forward");
+    DEBUG("Finished forward");
 }
 
 // moves the cursor to the left
@@ -229,14 +253,14 @@ void handleBackwardButton() {
             cursorPos[0]--;
             currentCharsNumber--;
 
-            Serial.println("Cursor has moved left");
+            DEBUG("Cursor has moved left");
         }
     }
-    Serial.println("Finished backward");
+    DEBUG("Finished backward");
 }
 
 void assignKeyFunction(char c) {
-    Serial.println("Assigning key function");
+    DEBUG("Assigning key function");
 
     switch (c) {
         case 'A':
@@ -257,6 +281,8 @@ void assignKeyFunction(char c) {
         default:
             break;
     }
+
+    DEBUG(" ");
 }
 
 // ===============================================================================================================
@@ -266,7 +292,7 @@ void assignKeyFunction(char c) {
 // checks if sign isn't null
 bool validChar(char c) {
     if (c != '\0') {
-        Serial.println("validing char");
+        DEBUG("validing char");
         return true;
     }
 
@@ -275,7 +301,7 @@ bool validChar(char c) {
 
 // prints the sign on the display
 void writeChar(char c) {
-    Serial.println("writing char");
+    DEBUG("writing char");
     lcd.setCursor(cursorPos[0], cursorPos[1]);
     lcd.print(c);
     if (!isEditionMode) {
@@ -285,7 +311,8 @@ void writeChar(char c) {
     }
     cursorPos[0] += 1;
     // delay(10);
-    Serial.println("finished write char");
+    DEBUG("finished write char");
+    DEBUG(" ");
 }
 
 // displays the digit from keypad or calls assignKeyFunction
@@ -294,10 +321,10 @@ void displayCharOnLCD(char c) {
         if (isdigit(c)) {
             currentCharsNumber++;
 
-            Serial.println("displaying character on pos:");
-            Serial.println(cursorPos[0]);
+            DEBUG("displaying character on pos:");
+            Serial.print(cursorPos[0]);
             Serial.print(" ");
-            Serial.println(cursorPos[1]);
+            DEBUG(cursorPos[1]);
 
             // lastMillisWrite = millis();
             writeChar(c);
