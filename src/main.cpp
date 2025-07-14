@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
+#include <MFRC522.h>
+#include <SPI.h>
 
 #define DEBUG_MODE  // switch to debug mode
 
@@ -63,12 +65,32 @@ void charImpulseOnDisplay(int charIndex, char c);
 
 void displayCharOnLCD(char c);
 
+boolean checkUID(byte* uid1, byte* uid2);
+
 byte outputState = 0;
+
+const byte SS_PIN = 10;
+const byte RST_PIN = 9;
+
+MFRC522 mfrc(SS_PIN, RST_PIN);
+
+byte storedUID[4] = {
+    0x5A, 0x0C, 0x1A, 0x02};
+
+byte currentUID[4];
+
+boolean isMFRCMode = true;
 
 void setup() {
     Serial.begin(9600);
 
     DEBUG("Serial monitor configured");
+
+    // sets mfrc
+    SPI.begin();
+    mfrc.PCD_Init();
+
+    DEBUG("MFRC configured");
 
     // sets shift register
     pinMode(clockPin, OUTPUT);
@@ -106,7 +128,7 @@ void setup() {
     delay(1000);
 
     lcd.clear();
-    lcd.print("Enter PIN: ");
+    lcd.print("Apply card");
 
     DEBUG("LCD configured");
     DEBUG("==============================================================================");
@@ -114,26 +136,66 @@ void setup() {
 }
 
 void loop() {
-    char c = readKeypad();
+    if (isMFRCMode) {
+        // waiting for card
+        if (!mfrc.PICC_IsNewCardPresent()) return;
+        if (!mfrc.PICC_ReadCardSerial()) return;
 
-    if ((millis() - lastMillis) >= 500) {
-        if (isEditionMode) {
-            charImpulseOnDisplay(1, pin[cursorPos[0]]);
+        Serial.print("UID: ");
+
+        for (int i = 0; i < mfrc.uid.size; i++) {
+            currentUID[i] = mfrc.uid.uidByte[i];
+
+            if (currentUID[i] < 0x10) {
+                Serial.print(0);
+            }
+            Serial.print(currentUID[i], HEX);
+            Serial.print(" ");
+        }
+
+        Serial.println(" ");
+
+        if (checkUID(currentUID, storedUID)) {
+            Serial.println("Open");
         } else {
-            charImpulseOnDisplay(0, ' ');
+            Serial.println("Close");
+            isMFRCMode = false;
+
+            lcd.clear();
+            lcd.print("Enter PIN: ");
+        }
+
+    } else {
+        char c = readKeypad();
+
+        if ((millis() - lastMillis) >= 500) {
+            if (isEditionMode) {
+                charImpulseOnDisplay(1, pin[cursorPos[0]]);
+            } else {
+                charImpulseOnDisplay(0, ' ');
+            }
+        }
+
+        if (cursorPos[0] >= pin.length()) {
+            isEditionMode = false;
+        }
+
+        if (currentCharsNumber >= maxCharsNumber) {
+            checkPin(pin.toInt(), 1234);
+            return;
+        }
+
+        displayCharOnLCD(c);
+    }
+}
+
+boolean checkUID(byte* uid1, byte* uid2) {
+    for (int i = 0; i < 4; i++) {
+        if (uid1[i] != uid2[i]) {
+            return false;
         }
     }
-
-    if (cursorPos[0] >= pin.length()) {
-        isEditionMode = false;
-    }
-
-    if (currentCharsNumber >= maxCharsNumber) {
-        checkPin(pin.toInt(), 1234);
-        return;
-    }
-
-    displayCharOnLCD(c);
+    return true;
 }
 
 void updateShiftRegister(byte value) {
