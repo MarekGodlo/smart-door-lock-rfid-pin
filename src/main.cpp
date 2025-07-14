@@ -9,17 +9,18 @@
 #define DEBUG(x)
 #endif
 
-const int clockPin = 13;
-const int latchPin = 12;
-const int dataPin = 11;
+const int clockPin = 8;
+const int latchPin = 7;
+const int dataPin = 6;
 
 // keypad
 const byte ROWS = 4;
 const byte COLUMNS = 4;
 
 // byte rowPins[ROWS] = {5, 4, 3, 2};
+const byte servoPin = 5;
 
-byte collumPins[COLUMNS] = {2, 3, 4, 5};
+byte collumPins[COLUMNS] = {A0, 2, 3, 4};
 
 char keypad[ROWS][COLUMNS]{
     {'1', '2', '3', 'A'},
