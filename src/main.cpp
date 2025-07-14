@@ -2,6 +2,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <MFRC522.h>
 #include <SPI.h>
+#include <Servo.h>
 
 #define DEBUG_MODE  // switch to debug mode
 
@@ -67,6 +68,8 @@ void displayCharOnLCD(char c);
 
 boolean checkUID(byte* uid1, byte* uid2);
 
+void activeServo(int angel, int speed);
+
 byte outputState = 0;
 
 const byte SS_PIN = 10;
@@ -81,6 +84,8 @@ byte currentUID[4];
 
 boolean isMFRCMode = true;
 
+Servo servo;
+
 void setup() {
     Serial.begin(9600);
 
@@ -91,6 +96,11 @@ void setup() {
     mfrc.PCD_Init();
 
     DEBUG("MFRC configured");
+
+    servo.attach(servoPin);
+    servo.write(90);
+
+    DEBUG("Servo motor configured");
 
     // sets shift register
     pinMode(clockPin, OUTPUT);
@@ -156,15 +166,24 @@ void loop() {
         Serial.println(" ");
 
         if (checkUID(currentUID, storedUID)) {
-            Serial.println("Open");
+            DEBUG("Detected correct UID");
+            lcd.clear();
+            lcd.print("Correct card");
+            activeServo(180, 3000);
         } else {
-            Serial.println("Close");
+            DEBUG("Detected incorrect UID");
+            DEBUG("Switched to keypad");
+
             isMFRCMode = false;
+            lcd.print("Incorrect card");
+
+            delay(2000);
 
             lcd.clear();
             lcd.print("Enter PIN: ");
+            cursorPos[0] = 0;
+            lcd.setCursor(cursorPos[0], cursorPos[1]);
         }
-
     } else {
         char c = readKeypad();
 
@@ -181,12 +200,28 @@ void loop() {
         }
 
         if (currentCharsNumber >= maxCharsNumber) {
-            checkPin(pin.toInt(), 1234);
+            if (pin.toInt(), 1234) {
+                lcd.clear();
+                lcd.print("Correct PIN");
+                activeServo(180, 3000);
+                isMFRCMode = true;
+            } else {
+                lcd.clear();
+                lcd.print("Incorrect PIN");
+                isMFRCMode = true;
+            }
+
             return;
         }
 
         displayCharOnLCD(c);
     }
+}
+
+void activeServo(int angel, int speed) {
+    servo.write(angel);
+    delay(speed);
+    servo.write(90);
 }
 
 boolean checkUID(byte* uid1, byte* uid2) {
@@ -399,7 +434,7 @@ void writeChar(char c) {
     if (!isEditionMode) {
         pin += c;
     } else {
-        pin[cursorPos[0]];
+        pin[cursorPos[0]] = c;
     }
     cursorPos[0] += 1;
     // delay(10);
