@@ -70,6 +70,8 @@ boolean checkUID(byte* uid1, byte* uid2);
 
 void activeServo(int angel, int speed);
 
+void cleanTable(byte* table, int length);
+
 byte outputState = 0;
 
 const byte SS_PIN = 10;
@@ -81,6 +83,7 @@ byte storedUID[4] = {
     0x5A, 0x0C, 0x1A, 0x02};
 
 byte currentUID[4];
+const int CURRENT_UID_LENGHT = 4;
 
 boolean isMFRCMode = true;
 
@@ -175,6 +178,7 @@ void loop() {
             DEBUG("Switched to keypad");
 
             isMFRCMode = false;
+            lcd.clear();
             lcd.print("Incorrect card");
 
             delay(2000);
@@ -184,6 +188,10 @@ void loop() {
             cursorPos[0] = 0;
             lcd.setCursor(cursorPos[0], cursorPos[1]);
         }
+
+        mfrc.PICC_HaltA();
+        mfrc.PCD_StopCrypto1();
+        cleanTable(currentUID, CURRENT_UID_LENGHT);
     } else {
         char c = readKeypad();
 
@@ -200,17 +208,19 @@ void loop() {
         }
 
         if (currentCharsNumber >= maxCharsNumber) {
-            if (pin.toInt(), 1234) {
+            if (checkPin(pin.toInt(), 1234)) {
                 lcd.clear();
                 lcd.print("Correct PIN");
                 activeServo(180, 3000);
-                isMFRCMode = true;
             } else {
                 lcd.clear();
                 lcd.print("Incorrect PIN");
-                isMFRCMode = true;
             }
 
+            currentCharsNumber = 0;
+            pin = "";
+            cursorPos[0] = 0;
+            isMFRCMode = true;
             return;
         }
 
@@ -218,10 +228,17 @@ void loop() {
     }
 }
 
+void cleanTable(byte* table, int lenght) {
+    for (int i = 0; i < lenght; i++) {
+        table[i] = 0;
+    }
+}
+
 void activeServo(int angel, int speed) {
-    servo.write(angel);
-    delay(speed);
-    servo.write(90);
+    // servo.write(angel);
+    // delay(speed);
+    // servo.write(90);
+    DEBUG("Actived servo");
 }
 
 boolean checkUID(byte* uid1, byte* uid2) {
@@ -239,11 +256,13 @@ void updateShiftRegister(byte value) {
     digitalWrite(latchPin, HIGH);
 }
 
-bool checkPin(int pin, int correctPin) {
+boolean checkPin(int pin, int correctPin) {
     if (pin == correctPin) {
         DEBUG("Entered correct pin");
+        return true;
     } else {
         DEBUG("Entered incorrect pin");
+        return false;
     }
 }
 
