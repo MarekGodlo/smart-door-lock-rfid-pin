@@ -12,18 +12,31 @@
 #define DEBUG(x)
 #endif
 
-const int clockPin = 8;
-const int latchPin = 7;
-const int dataPin = 6;
+// MFRC522
+const uint8_t SS_PIN = 10;
+const uint8_t RST_PIN = 9;
 
-// keypad
-const byte ROWS = 4;
-const byte COLUMNS = 4;
+MFRC522 mfrc(SS_PIN, RST_PIN);
 
-// byte rowPins[ROWS] = {5, 4, 3, 2};
-const byte servoPin = 5;
+// Sored UID for identify the card
+uint8_t storedUID[4] = {
+    0x5A, 0x0C, 0x1A, 0x02};
 
-byte collumPins[COLUMNS] = {A0, 2, 3, 4};
+uint8_t currentUID[4];
+const uint8_t CURRENT_UID_LENGHT = 4;
+
+boolean isMFRCMode = true;
+
+// Shift register
+const uint8_t CLOCK_PIN = 8;
+const uint8_t LATCH_PIN = 7;
+const uint8_t DATA_PIN = 6;
+
+// Keypad
+const uint8_t ROWS = 4;
+const uint8_t COLUMNS = 4;
+
+uint8_t collumPins[COLUMNS] = {A0, 2, 3, 4};
 
 char keypad[ROWS][COLUMNS]{
     {'1', '2', '3', 'A'},
@@ -31,98 +44,78 @@ char keypad[ROWS][COLUMNS]{
     {'7', '8', '9', 'C'},
     {'*', '0', '#', 'D'}};
 
-// lcd
+// LCD
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-byte lineChar[8] = {B10000, B10000, B10000, B10000,
-                    B10000, B10000, B10000, B10000};
+uint8_t lineChar[8] = {B10000, B10000, B10000, B10000,
+                       B10000, B10000, B10000, B10000};
 
-byte squareChar[8] = {B11111, B11111, B11111, B11111,
-                      B11111, B11111, B11111, B11111};
+uint8_t squareChar[8] = {B11111, B11111, B11111, B11111,
+                         B11111, B11111, B11111, B11111};
 
-byte cursorPos[2] = {0, 1};
+uint8_t cursorPos[2] = {0, 1};
 
 bool isEditionMode = false;
 
 unsigned long lastMillis;
-// unsigned long lastMillisWrite;
 
-// pulsing char
+// Pulsing char
 bool shouldShowChar = true;
 
-// pin
-int currentCharsNumber = 0;
-int maxCharsNumber = 4;
+// PIN
+uint8_t currentCharsNumber = 0;
+const uint8_t MAX_CHARS_NUMBER = 4;
 
 String pin;
+const int STORED_PIN = 1234;
 
-void updateShiftRegister(byte value);
+uint8_t outputState = 0;
 
-bool checkPin(int pin, int correctPin);
+// Servo
+Servo servo;
+const uint8_t SERVO_PIN = 5;
+
+boolean checkUID(uint8_t* uid1, uint8_t* uid2);
+void cleanTable(uint8_t* table, uint8_t length);
 
 char readKeypad();
-
-void charImpulseOnDisplay(int charIndex, char c);
-
+void charImpulseOnDisplay(uint8_t charIndex, char c);
 void displayCharOnLCD(char c);
-
-boolean checkUID(byte* uid1, byte* uid2);
+bool checkPIN(int entered, int correct);
 
 void activeServo(int angel, int speed);
-
-void cleanTable(byte* table, int length);
-
-byte outputState = 0;
-
-const byte SS_PIN = 10;
-const byte RST_PIN = 9;
-
-MFRC522 mfrc(SS_PIN, RST_PIN);
-
-byte storedUID[4] = {
-    0x5A, 0x0C, 0x1A, 0x02};
-
-byte currentUID[4];
-const int CURRENT_UID_LENGHT = 4;
-
-boolean isMFRCMode = true;
-
-Servo servo;
 
 void setup() {
     Serial.begin(9600);
 
     DEBUG("Serial monitor configured");
 
-    // sets mfrc
+    // Sets mfrc
     SPI.begin();
     mfrc.PCD_Init();
 
     DEBUG("MFRC configured");
 
-    servo.attach(servoPin);
+    // Sets servo
+    servo.attach(SERVO_PIN);
     servo.write(90);
 
     DEBUG("Servo motor configured");
 
-    // sets shift register
-    pinMode(clockPin, OUTPUT);
-    pinMode(latchPin, OUTPUT);
-    pinMode(dataPin, OUTPUT);
+    // Sets shift register
+    pinMode(CLOCK_PIN, OUTPUT);
+    pinMode(LATCH_PIN, OUTPUT);
+    pinMode(DATA_PIN, OUTPUT);
 
     DEBUG("Shift register congigured");
 
-    // sets keypad
-    // for (int r = 0; r < ROWS; r++) {
-    //     pinMode(rowPins[r], INPUT);
-    // }
-
+    // Sets keypad
     for (int c = 0; c < COLUMNS; c++) {
         pinMode(collumPins[c], INPUT_PULLUP);
     }
     DEBUG("Keypad configured");
 
-    // sets lcd
+    // Sets LCD
     lcd.init();
     lcd.backlight();
 
@@ -150,7 +143,7 @@ void setup() {
 
 void loop() {
     if (isMFRCMode) {
-        // waiting for card
+        // Waiting for card
         if (!mfrc.PICC_IsNewCardPresent()) return;
         if (!mfrc.PICC_ReadCardSerial()) return;
 
@@ -209,8 +202,8 @@ void loop() {
             isEditionMode = false;
         }
 
-        if (currentCharsNumber >= maxCharsNumber) {
-            if (checkPin(pin.toInt(), 1234)) {
+        if (currentCharsNumber >= MAX_CHARS_NUMBER) {
+            if (checkPIN(pin.toInt(), STORED_PIN)) {
                 lcd.clear();
                 lcd.print("Correct PIN");
                 activeServo(180, 3000);
@@ -234,7 +227,7 @@ void loop() {
     }
 }
 
-void cleanTable(byte* table, int lenght) {
+void cleanTable(uint8_t* table, uint8_t lenght) {
     for (int i = 0; i < lenght; i++) {
         table[i] = 0;
     }
@@ -247,7 +240,7 @@ void activeServo(int angel, int speed) {
     DEBUG("Actived servo");
 }
 
-boolean checkUID(byte* uid1, byte* uid2) {
+boolean checkUID(uint8_t* uid1, uint8_t* uid2) {
     for (int i = 0; i < 4; i++) {
         if (uid1[i] != uid2[i]) {
             return false;
@@ -256,45 +249,30 @@ boolean checkUID(byte* uid1, byte* uid2) {
     return true;
 }
 
-void updateShiftRegister(byte value) {
-    digitalWrite(latchPin, LOW);
-    shiftOut(dataPin, clockPin, MSBFIRST, value);
-    digitalWrite(latchPin, HIGH);
-}
-
-boolean checkPin(int pin, int correctPin) {
-    if (pin == correctPin) {
-        DEBUG("Entered correct pin");
-        return true;
-    } else {
-        DEBUG("Entered incorrect pin");
-        return false;
-    }
-}
-
 // ===============================================================================================================
 // Keypad
 // ===============================================================================================================
 
-void selectRow(byte row) {
+void updateShiftRegister(uint8_t value) {
+    digitalWrite(LATCH_PIN, LOW);
+    shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, value);
+    digitalWrite(LATCH_PIN, HIGH);
+}
+
+void selectRow(uint8_t row) {
     outputState |= 0b00011110;
     outputState &= ~(1 << (row + 1));
 
     updateShiftRegister(outputState);
 }
 
-// reads the value from keypad
+// Reads the value from keypad
 char readKeypad() {
     char userChoice = '\0';
 
-    // checks all rows
+    // Checks all rows
     for (int r = 0; r < ROWS; r++) {
-        // pinMode(rowPins[r], OUTPUT);
-        // digitalWrite(rowPins[r], LOW);
         selectRow(r);
-
-        // DEBUG("checking " + String(r));
-
         delayMicroseconds(20);
 
         // check all columns
@@ -320,17 +298,27 @@ char readKeypad() {
     return userChoice;
 }
 
+boolean checkPIN(int entered, int correct) {
+    if (entered == correct) {
+        DEBUG("Entered correct pin");
+        return true;
+    } else {
+        DEBUG("Entered incorrect pin");
+        return false;
+    }
+}
+
 // ===============================================================================================================
 // Assigning function to buttons
 // ===============================================================================================================
 
-void handleAcceptButton() {
-    lcd.setCursor(0, 1);
-    lcd.print("Accept");
-    DEBUG("finished");
-};
+// void handleAcceptButton() {
+//     lcd.setCursor(0, 1);
+//     lcd.print("Accept");
+//     DEBUG("finished");
+// };
 
-// deletes last sign
+// Deletes last sign
 void handleBackspaceButton() {
     lcd.setCursor(cursorPos[0], cursorPos[1]);
     cursorPos[0]--;
@@ -340,9 +328,9 @@ void handleBackspaceButton() {
     DEBUG("finished backspace");
 }
 
-// deletes all signs in row
+// Deletes all signs in row
 void handleClearButton() {
-    for (int i = 0; i < maxCharsNumber; i++) {
+    for (int i = 0; i < MAX_CHARS_NUMBER; i++) {
         lcd.setCursor(i, cursorPos[1]);
         lcd.print(" ");
         cursorPos[0] = 0;
@@ -353,9 +341,9 @@ void handleClearButton() {
     DEBUG(" finished clear PIN");
 }
 
-// turns on or turns off edition mode
+// Turns on or turns off edition mode
 void handleCursorModeButton() {
-    // turn off
+    // Turns off
     if (isEditionMode) {
         currentCharsNumber = pin.length();
         lcd.setCursor(cursorPos[0], cursorPos[1]);
@@ -364,7 +352,7 @@ void handleCursorModeButton() {
         isEditionMode = false;
 
         DEBUG("Finished turn off edition mode");
-        // turn on
+        // Turns on
     } else {
         lcd.setCursor(cursorPos[0], cursorPos[1]);
         isEditionMode = true;
@@ -376,15 +364,15 @@ void handleCursorModeButton() {
     }
 }
 
-// moves the cursor to the right
+// Moves the cursor to the right
 void handleForwardButton() {
     if (isEditionMode) {
         if (cursorPos[0] != 0) {
         }
-        // delete cursor char
+        // Delete cursor char
         lcd.setCursor(cursorPos[0], cursorPos[1]);
         lcd.print(pin[cursorPos[0]]);
-        // change the cursor position
+        // Change the cursor position
         cursorPos[0]++;
         currentCharsNumber++;
 
@@ -393,15 +381,15 @@ void handleForwardButton() {
     DEBUG("Finished forward");
 }
 
-// moves the cursor to the left
+// Moves the cursor to the left
 void handleBackwardButton() {
     if (isEditionMode) {
-        // checks if the cursor isn't on the first column;
+        // Checks if the cursor isn't on the first column;
         if (cursorPos[0] != 0) {
-            // delete cursor char
+            // Delete cursor char
             lcd.setCursor(cursorPos[0], cursorPos[1]);
             lcd.print(pin[cursorPos[0]]);
-            // change the cursor position
+            // Change the cursor position
             cursorPos[0]--;
             currentCharsNumber--;
 
@@ -441,7 +429,7 @@ void assignKeyFunction(char c) {
 // LCD
 // ===============================================================================================================
 
-// checks if sign isn't null
+// Checks if sign isn't null
 bool validChar(char c) {
     if (c != '\0') {
         DEBUG("validing char");
@@ -451,7 +439,7 @@ bool validChar(char c) {
     return false;
 }
 
-// prints the sign on the display
+// Prints the sign on the display
 void writeChar(char c) {
     DEBUG("writing char");
     lcd.setCursor(cursorPos[0], cursorPos[1]);
@@ -462,12 +450,11 @@ void writeChar(char c) {
         pin[cursorPos[0]] = c;
     }
     cursorPos[0] += 1;
-    // delay(10);
     DEBUG("finished write char");
     DEBUG(" ");
 }
 
-// displays the digit from keypad or calls assignKeyFunction
+// Displays the digit from keypad or calls assignKeyFunction
 void displayCharOnLCD(char c) {
     if (validChar(c)) {
         if (isdigit(c)) {
@@ -478,14 +465,13 @@ void displayCharOnLCD(char c) {
             Serial.print(" ");
             DEBUG(cursorPos[1]);
 
-            // lastMillisWrite = millis();
             writeChar(c);
         } else
             assignKeyFunction(c);
     }
 }
 
-void displayPulsingChar(int charIndex, char c) {
+void displayPulsingChar(uint8_t charIndex, char c) {
     if (shouldShowChar) {
         shouldShowChar = false;
         lcd.write(charIndex);
@@ -495,8 +481,8 @@ void displayPulsingChar(int charIndex, char c) {
     }
 }
 
-// set sign that will be puls
-void charImpulseOnDisplay(int charIndex, char c) {
+// Set sign that will be puls
+void charImpulseOnDisplay(uint8_t charIndex, char c) {
     lastMillis = millis();
 
     lcd.setCursor(cursorPos[0], cursorPos[1]);
