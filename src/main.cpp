@@ -173,6 +173,8 @@ void loop() {
             lcd.clear();
             lcd.print("Correct card");
             activeServo(180, 3000);
+            lcd.clear();
+            lcd.print("Apply card");
         } else {
             DEBUG("Detected incorrect UID");
             DEBUG("Switched to keypad");
@@ -215,7 +217,11 @@ void loop() {
             } else {
                 lcd.clear();
                 lcd.print("Incorrect PIN");
+                delay(2000);
             }
+
+            lcd.clear();
+            lcd.print("Apply card");
 
             currentCharsNumber = 0;
             pin = "";
@@ -235,9 +241,9 @@ void cleanTable(byte* table, int lenght) {
 }
 
 void activeServo(int angel, int speed) {
-    // servo.write(angel);
-    // delay(speed);
-    // servo.write(90);
+    servo.write(angel);
+    delay(speed);
+    servo.write(90);
     DEBUG("Actived servo");
 }
 
