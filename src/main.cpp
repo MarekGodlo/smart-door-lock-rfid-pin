@@ -312,12 +312,6 @@ boolean checkPIN(int entered, int correct) {
 // Assigning function to buttons
 // ===============================================================================================================
 
-// void handleAcceptButton() {
-//     lcd.setCursor(0, 1);
-//     lcd.print("Accept");
-//     DEBUG("finished");
-// };
-
 // Deletes last sign
 void handleBackspaceButton() {
     lcd.setCursor(cursorPos[0], cursorPos[1]);
