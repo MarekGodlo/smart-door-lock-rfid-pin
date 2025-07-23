@@ -1,6 +1,5 @@
-# Smart door lock with rfid and PIN
-A simple project for creating a simple door lock with rfid card scanner and PIN.
-It was creating for fun, **NOT TO USE FOR COMMERCIAL PURPOSES** .
+# Smart door lock with RFID and PIN
+A simple project for creating a basic lock system using an RFID card scanner and a PIN keypad. This project was created for fun and educational purposes only. **NOT INTENDED FOR COMMERCIAL USE**.
 
 ## Features
 - improve project structure
