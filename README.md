@@ -1,11 +1,11 @@
 # Smart door lock with RFID and PIN
 A simple project for creating a basic lock system using an RFID card scanner and a PIN keypad. This project was created for fun and educational purposes only. **NOT INTENDED FOR COMMERCIAL USE**.
 
-## Features
-- improve project structure
-  - add class and helper files
-  - add more functions
-- Enhance users experience (UX)
+# Features
+- Improved project structure
+    - Added classes and helper files
+    - Added more helper functions
+- Ehnanced users experience (UX)
 
 ## Used electronic compoments
 - Arduino UNO
@@ -18,7 +18,7 @@ A simple project for creating a basic lock system using an RFID card scanner and
 ## Required libraries
 - [LiquidCrystal_I2C](https://github.com/johnrickman/LiquidCrystal_I2C)
 - [SPI](https://docs.arduino.cc/libraries/spi/)
-- [RFID522](https://github.com/miguelbalboa/rfid)
+- [MFRC522](https://github.com/miguelbalboa/rfid)
 - [Servo](https://docs.arduino.cc/libraries/servo/)
 
 ## Pins connections
